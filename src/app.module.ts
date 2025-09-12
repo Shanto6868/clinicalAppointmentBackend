@@ -5,6 +5,7 @@ import { PatientModule } from './patient/patient.module';
 import { AppointmentsModule } from './appointments/appointments.module';
 import { AuthModule } from './auth/auth.module';
 import { Patient } from './patient/patient.entity';
+import { AdminModule } from './Admin/admin.module';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { Patient } from './patient/patient.entity';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'pgadmin',
+      password: 'grearnob',
       database: 'clinic_db',
       autoLoadEntities: true,
       synchronize: true,
@@ -22,6 +23,7 @@ import { Patient } from './patient/patient.entity';
     AuthModule,
     PatientModule,
     AppointmentsModule,
+    AdminModule,   // 👈 Register it here
   ],
   providers: [
     {
