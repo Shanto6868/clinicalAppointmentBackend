@@ -1,74 +1,58 @@
-import {Controller,Post,Get,Delete,Patch,Param,Body,UseGuards,Req,ParseIntPipe,UsePipes,ValidationPipe,} from '@nestjs/common';
-import { AppointmentsService } from './appointments.service';
+import {Controller,Get,Post,Body,Param, Patch,Delete,Query, UseGuards } from '@nestjs/common';
+import { AppointmentService } from './appointments.service';
 import { CreateAppointmentDto } from './create-appointment.dto';
-import { UpdateStatusDto } from './update-status.dto';
-import { UpdateReasonDto } from './update-reason.dto';
+import { UpdateAppointmentDto } from './update-appointment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('appointments')
-export class AppointmentsController {
-  constructor(private readonly service: AppointmentsService) {}
+@UseGuards(JwtAuthGuard) // Protect all appointment routes
+export class AppointmentController {
+  constructor(private readonly appointmentService: AppointmentService) {}
 
-  // Patient creates appointment (JWT)
-  @UseGuards(JwtAuthGuard)
   @Post()
-  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  create(@Req() req, @Body() dto: CreateAppointmentDto) {
-    return this.service.create(req.user.sub, dto);
+  create(@Body() createAppointmentDto: CreateAppointmentDto) {
+    return this.appointmentService.create(createAppointmentDto);
   }
 
-  // Admin/all view (if you add admin guard later)
   @Get()
-  getAll() {
-    return this.service.findAll();
+  findAll(
+    @Query('doctorId') doctorId?: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string
+  ) {
+    if (doctorId && startDate) {
+      return this.appointmentService.getDoctorAppointmentsByDate(
+        doctorId, 
+        new Date(startDate)
+      );
+    }
+    if (doctorId) {
+      return this.appointmentService.findByDoctor(doctorId);
+    }
+    if (startDate && endDate) {
+      return this.appointmentService.findByDateRange(
+        new Date(startDate), 
+        new Date(endDate)
+      );
+    }
+    return this.appointmentService.findAll();
   }
 
   @Get(':id')
-  getOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string) {
+    return this.appointmentService.findById(+id);
   }
 
-  // Patient-only: update status (e.g., cancel own appointment)
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id/status')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
-  updateStatus(
-    @Req() req,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateStatusDto,
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateAppointmentDto: UpdateAppointmentDto
   ) {
-    return this.service.updateStatus(req.user.sub, id, dto);
+    return this.appointmentService.update(+id, updateAppointmentDto);
   }
 
-  // Patient-only: update reason
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id/reason')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
-  updateReason(
-    @Req() req,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateReasonDto,
-  ) {
-    return this.service.updateReason(req.user.sub, id, dto);
-  }
-
-  // Patient's own list
-  @UseGuards(JwtAuthGuard)
-  @Get('patient/me')
-  myAppointments(@Req() req) {
-    return this.service.findByPatient(req.user.sub);
-  }
-
-  // Public filter by status (optional: add guard if needed)
-  @Get('status/:status')
-  getByStatus(@Param('status') status: 'pending' | 'confirmed' | 'cancelled') {
-    return this.service.findByStatus(status);
-  }
-
-  // Patient-only: delete own
-  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Req() req, @Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(req.user.sub, id);
+  remove(@Param('id') id: string) {
+    return this.appointmentService.remove(+id);
   }
 }

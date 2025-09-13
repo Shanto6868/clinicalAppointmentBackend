@@ -1,16 +1,24 @@
-import {IsString,MaxLength,IsIn,IsOptional,IsDateString,} from 'class-validator';
+import { IsDateString, IsString, IsNotEmpty, IsInt, IsOptional,IsIn } from 'class-validator';
 
 export class CreateAppointmentDto {
-  @IsDateString({}, { message: 'dateTime must be a valid ISO date-time string.' })
-  dateTime: string; 
+  @IsString()
+  @IsNotEmpty()
+  patientName: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  date: Date;
 
   @IsString()
-  @MaxLength(200, { message: 'Reason cannot exceed 200 characters.' })
-  reason: string;
+  @IsNotEmpty()
+  time: string;
+
+  @IsInt()
+  @IsNotEmpty()
+  doctorId: number;
 
   @IsOptional()
-  @IsIn(['pending', 'confirmed', 'cancelled'], {
-    message: 'Status must be pending, confirmed, or cancelled.',
-  })
-  status?: 'pending' | 'confirmed' | 'cancelled';
+  @IsString()
+  @IsIn(['pending', 'confirmed', 'cancelled', 'completed'])
+  status?: string;
 }

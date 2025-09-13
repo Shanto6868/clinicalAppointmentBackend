@@ -2,7 +2,7 @@ import { Module, ValidationPipe } from '@nestjs/common';
 import { APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PatientModule } from './patient/patient.module';
-import { AppointmentsModule } from './appointments/appointments.module';
+import { AppointmentModule } from './appointments/appointment.module';
 import { AuthModule } from './auth/auth.module';
 import { Patient } from './patient/patient.entity';
 import { AdminModule } from './Admin/admin.module';
@@ -14,7 +14,7 @@ import { AdminModule } from './Admin/admin.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'grearnob',
+      password: 'postsuma',
       database: 'clinic_db',
       autoLoadEntities: true,
       synchronize: true,
@@ -22,7 +22,7 @@ import { AdminModule } from './Admin/admin.module';
     TypeOrmModule.forFeature([Patient]),
     AuthModule,
     PatientModule,
-    AppointmentsModule,
+    AppointmentModule,
     AdminModule,   // 👈 Register it here
   ],
   providers: [

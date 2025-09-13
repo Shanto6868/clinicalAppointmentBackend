@@ -1,92 +1,97 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, NotFoundException, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Appointment } from './appointment.entity';
 import { CreateAppointmentDto } from './create-appointment.dto';
-import { UpdateStatusDto } from './update-status.dto';
-import { UpdateReasonDto } from './update-reason.dto';
+import { UpdateAppointmentDto } from './update-appointment.dto';
+import { DoctorService } from '../doctor/doctor.service';
 
 @Injectable()
-export class AppointmentsService {
+export class AppointmentService {
   constructor(
     @InjectRepository(Appointment)
-    private readonly repo: Repository<Appointment>,
+    private appointmentRepository: Repository<Appointment>,
+    private doctorService: DoctorService
   ) {}
 
-  private ensureFuture(dateTimeISO: string) {
-    const dt = new Date(dateTimeISO);
-    if (Number.isNaN(dt.getTime())) {
-      throw new HttpException('Invalid dateTime', HttpStatus.BAD_REQUEST);
-    }
-    const now = new Date();
-    if (dt.getTime() <= now.getTime()) {
-      throw new HttpException(
-        'Appointment dateTime must be in the future',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-    return dt;
-  }
+  async create(createAppointmentDto: CreateAppointmentDto): Promise<Appointment> {
+  const appointment = this.appointmentRepository.create({
+    ...createAppointmentDto,
+    doctor: { id: createAppointmentDto.doctorId } 
+  });
+  
+  return this.appointmentRepository.save(appointment);
+}
 
-  async create(patientId: number, dto: CreateAppointmentDto) {
-    const dt = this.ensureFuture(dto.dateTime);
-    const entity = this.repo.create({
-      patientId,
-      dateTime: dt,
-      reason: dto.reason,
-      status: dto.status ?? 'pending',
+  async findAll(): Promise<Appointment[]> {
+    return this.appointmentRepository.find({ 
+      relations: ['doctor'],
+      order: {  date: 'ASC', time: 'ASC' }
     });
-    return this.repo.save(entity);
   }
 
-  async findAll() {
-    return this.repo.find();
-  }
-
-  async findOne(id: number) {
-    const appt = await this.repo.findOne({ where: { id } });
-    if (!appt) {
-      throw new HttpException('Appointment not found', HttpStatus.NOT_FOUND);
+  async findById(id: number): Promise<Appointment> {
+    const appointment = await this.appointmentRepository.findOne({ 
+      where: { id },
+      relations: ['doctor']
+    });
+    
+    if (!appointment) {
+      throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    return appt;
+    return appointment;
   }
 
-  async findByPatient(patientId: number) {
-    return this.repo.find({ where: { patientId } });
+  async update(id: number, updateAppointmentDto: UpdateAppointmentDto): Promise<Appointment> {
+    const appointment = await this.findById(id);
+    Object.assign(appointment, updateAppointmentDto);
+    return this.appointmentRepository.save(appointment);
   }
 
-  async findByStatus(status: 'pending' | 'confirmed' | 'cancelled') {
-    return this.repo.find({ where: { status } });
-  }
-
-  async findOlderThan(date: Date) {
-    return this.repo.find({ where: { dateTime: MoreThan(date) } });
-  }
-
-  async updateStatus(patientId: number, id: number, dto: UpdateStatusDto) {
-    const appt = await this.repo.findOne({ where: { id, patientId } });
-    if (!appt) {
-      throw new HttpException('Not found or not permitted', HttpStatus.NOT_FOUND);
+  async remove(id: number): Promise<void> {
+    const result = await this.appointmentRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Appointment with ID ${id} not found`);
     }
-    appt.status = dto.status;
-    return this.repo.save(appt);
   }
 
-  async updateReason(patientId: number, id: number, dto: UpdateReasonDto) {
-    const appt = await this.repo.findOne({ where: { id, patientId } });
-    if (!appt) {
-      throw new HttpException('Not found or not permitted', HttpStatus.NOT_FOUND);
-    }
-    appt.reason = dto.reason;
-    return this.repo.save(appt);
+  async findByDoctor(doctorId: number): Promise<Appointment[]> {
+    await this.doctorService.findById(doctorId); 
+    return this.appointmentRepository.find({
+      where: { doctor: { id: doctorId } },
+      relations: ['doctor'],
+      order: { date: 'ASC', time: 'ASC',  }
+    });
   }
 
-  async remove(patientId: number, id: number) {
-    const appt = await this.repo.findOne({ where: { id, patientId } });
-    if (!appt) {
-      throw new HttpException('Not found or not permitted', HttpStatus.NOT_FOUND);
-    }
-    await this.repo.delete(id);
-    return { message: 'Appointment deleted' };
+  async findByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
+    return this.appointmentRepository.find({
+      where: {
+        date: Between(
+          new Date(startDate),
+          new Date(endDate)
+        )
+      },
+      relations: ['doctor'],
+      order: {  date: 'ASC', time: 'ASC',  }
+    });
   }
+
+  async getDoctorAppointmentsByDate(doctorId: number, date: Date): Promise<Appointment[]> {
+    await this.doctorService.findById(doctorId);
+    return this.appointmentRepository.find({
+      where: {
+        doctor: { id: doctorId },
+        date: new Date(date)
+      },
+    
+    });
+  }
+
+  async getDoctorAppointments(doctorId: number): Promise<Appointment[]> {
+  return this.appointmentRepository.find({
+    where: { doctor: { id: doctorId } },
+    relations: ['doctor'] 
+  });
+}
 }
