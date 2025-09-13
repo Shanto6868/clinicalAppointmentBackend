@@ -1,7 +1,8 @@
-import { Controller, Post, Body, UnauthorizedException, Put, UseGuards, Request  } from '@nestjs/common';
+// auth.controller.ts
+import { Controller, Post, Body, UnauthorizedException, Put, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDoctorDto } from '../doctor/login-doctor.dto';
-import { ChangePasswordDto } from '../doctor/change-password.dto';
+import { LoginDto } from './login.dto';
+import { ChangePasswordDto } from './change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
@@ -9,21 +10,29 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() loginDoctorDto: LoginDoctorDto): Promise<any> {
-    const doctor = await this.authService.validateDoctor(
-      loginDoctorDto.email,
-      loginDoctorDto.password
+  async login(@Body() loginDto: LoginDto): Promise<any> {
+    const user = await this.authService.validateUser(
+      loginDto.email,
+      loginDto.password,
+      loginDto.type
     );
     
-    if (!doctor) {
+    if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.authService.login(doctor);
+    return this.authService.login(user, loginDto.type);
   }
-   @Put('change-password')
+
+  // CHANGE PASSWORD FOR DOCTORS ONLY
+  @Put('change-password')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Request() req, @Body() changePasswordDto: ChangePasswordDto): Promise<any> {
+    // Check if the user is a doctor
+    if (req.user.type !== 'doctor') {
+      throw new ForbiddenException('Only doctors can change passwords through this endpoint');
+    }
+    
     const doctorId = req.user.id;
     const { currentPassword, newPassword } = changePasswordDto;
     
@@ -35,8 +44,6 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(): Promise<any> {
-    // In a stateless JWT system, logout is handled on the client side by removing the token
-    // We could implement a token blacklist here if needed
     return { message: 'Logged out successfully' };
   }
 }

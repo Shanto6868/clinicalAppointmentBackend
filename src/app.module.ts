@@ -14,7 +14,7 @@ import { AdminModule } from './Admin/admin.module';
       host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: 'postsuma',
+      password: 'pgadmin',
       database: 'clinic_db',
       autoLoadEntities: true,
       synchronize: true,

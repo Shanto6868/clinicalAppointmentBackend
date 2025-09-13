@@ -148,7 +148,7 @@ async findByEmailForAuth(email: string): Promise<Doctor> {
       throw new NotFoundException('Appointment not found for this doctor');
     }
 
-    appointment.status = status;
+    appointment.status =  status as any;
     return this.doctorRepository.manager.save(appointment);
   }
 }

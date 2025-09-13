@@ -3,8 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  BeforeInsert,
+  BeforeInsert, OneToMany
 } from 'typeorm';
+
+import { Appointment } from '../appointments/appointment.entity';
 
 @Entity()
 export class Patient {
@@ -43,6 +45,12 @@ export class Patient {
 
   @CreateDateColumn()
   createdAt: Date;
+
+   @OneToMany(() => Appointment, appointment => appointment.patient, {
+      cascade: true, 
+      eager: false 
+    })
+    appointments: Appointment[];
 
   @BeforeInsert()
   normalizeName() {

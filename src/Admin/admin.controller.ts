@@ -1,5 +1,5 @@
 import { Controller, Post, Body, Patch, Param, Delete, Get, UsePipes, Put, UseGuards, Req, ForbiddenException, Query } from '@nestjs/common';
-import { AdminsService } from './admin.service';
+import { AdminsService } from './admins.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { AdminValidationPipe } from './pipes/admin-validation.pipe';

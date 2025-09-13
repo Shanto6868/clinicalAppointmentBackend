@@ -1,10 +1,6 @@
-import { IsDateString, IsString, IsNotEmpty, IsInt, IsOptional,IsIn } from 'class-validator';
+import { IsDateString, IsString, IsNotEmpty, IsInt, IsOptional, IsIn } from 'class-validator';
 
 export class CreateAppointmentDto {
-  @IsString()
-  @IsNotEmpty()
-  patientName: string;
-
   @IsDateString()
   @IsNotEmpty()
   date: Date;
@@ -18,7 +14,6 @@ export class CreateAppointmentDto {
   doctorId: number;
 
   @IsOptional()
-  @IsString()
   @IsIn(['pending', 'confirmed', 'cancelled', 'completed'])
-  status?: string;
+  status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
 }

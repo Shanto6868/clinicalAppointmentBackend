@@ -1,36 +1,55 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn,  } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
+import { Patient } from '../patient/patient.entity';
 
 @Entity()
 export class Appointment {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column() 
-  patientName: string;
+  // ✅ Relation with Patient
+  @ManyToOne(() => Patient, (patient) => patient.appointments, {
+    eager: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'patientId' })
+  patient: Patient;
 
+  @Column()
+  patientId: number;
+
+  // ✅ Relation with Doctor
+  @ManyToOne(() => Doctor, (doctor) => doctor.appointments, {
+    eager: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'doctorId' })
+  doctor: Doctor;
+
+  @Column()
+  doctorId: number;
+
+  // Appointment details
   @Column({ type: 'date' })
   date: Date;
 
   @Column()
   time: string;
 
- @Column({ nullable: false })  
-doctorId: number;
-
-@ManyToOne(() => Doctor, doctor => doctor.appointments, { 
-  eager: false,
-  onDelete: 'CASCADE'
-})
-
-@JoinColumn({ name: 'doctorId' })
-doctor: Doctor;
-
-   @Column({ 
-    type: 'varchar',
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'confirmed', 'cancelled', 'completed'],
     default: 'pending',
-    enum: ['pending', 'confirmed', 'cancelled', 'completed']
   })
-  status: string;
-  
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+
+  @CreateDateColumn()
+  createdAt: Date;
 }

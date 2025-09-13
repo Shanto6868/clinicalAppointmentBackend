@@ -1,44 +1,66 @@
+// auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DoctorService } from '../doctor/doctor.service';
+import { PatientService } from '../patient/patient.service';
+import { AdminService } from '../admin/admin.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private doctorService: DoctorService,
+    private patientService: PatientService,
+    private adminService: AdminService,
     private jwtService: JwtService,
   ) {}
 
-  async validateDoctor(email: string, password: string): Promise<any> {
-    const doctor = await this.doctorService.findByEmailForAuth(email);
+  async validateUser(email: string, password: string, type: string): Promise<any> {
+    let user: any;
     
-    if (doctor && await bcrypt.compare(password, doctor.password)) {
-      const { password, ...result } = doctor;
-      return result;
+    switch (type) {
+      case 'doctor':
+        user = await this.doctorService.findByEmailForAuth(email);
+        break;
+      case 'patient':
+        user = await this.patientService.findByEmailForAuth(email);
+        break;
+      case 'admin':
+        user = await this.adminService.findByEmailForAuth(email);
+        break;
+      default:
+        return null;
+    }
+    
+    if (user && await bcrypt.compare(password, user.password)) {
+      const { password, ...result } = user;
+      return { ...result, type };
     }
     return null;
   }
 
-  async login(doctor: any) {
+  async login(user: any, type: string) {
     const payload = { 
-      email: doctor.email, 
-      sub: doctor.id,
-      username: doctor.username,
-      fullName: doctor.fullName
+      email: user.email, 
+      sub: user.id,
+      username: user.username,
+      fullName: user.fullName,
+      type: type
     };
     
     return {
       access_token: this.jwtService.sign(payload),
-      doctor: {
-        id: doctor.id,
-        email: doctor.email,
-        username: doctor.username,
-        fullName: doctor.fullName
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        type: type
       }
     };
   }
 
+  // CHANGE PASSWORD FOR DOCTORS ONLY
   async changePassword(doctorId: number, currentPassword: string, newPassword: string): Promise<boolean> {
     const doctor = await this.doctorService.findByIdForPasswordChange(doctorId);
     
