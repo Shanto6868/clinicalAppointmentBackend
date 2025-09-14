@@ -1,4 +1,9 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Patient } from './patient.entity';
@@ -9,11 +14,39 @@ import { ChangePasswordDto } from './change-password-patient.dto';
 
 @Injectable()
 export class PatientService {
+  findByEmail(email: string) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectRepository(Patient) private repo: Repository<Patient>,
     private jwtService: JwtService,
   ) {}
 
+
+
+    async findById(id: number): Promise<Patient> {
+      const patient = await this.repo.findOne({
+        where: { id },
+        relations: ['appointments']
+      });
+  
+      if (!patient) {
+        throw new NotFoundException(`Patient with ID ${id} not found`);
+      }
+      return patient;
+    }
+
+
+  async findByEmailForAuth(email: string): Promise<Patient> {
+    const patient = await this.repo.findOne({
+      where: { email },
+      select: ['id', 'email', 'password', 'fullName'],
+    });
+    if (!patient) {
+      throw new NotFoundException(`Doctor with email ${email} not found`);
+    }
+    return patient;
+  }
   // Register patient with optional image
   async register(dto: CreatePatientDto, imageFilename?: string) {
     const exists = await this.repo.findOne({ where: { email: dto.email } });

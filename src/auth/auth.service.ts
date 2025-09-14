@@ -2,20 +2,21 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DoctorService } from '../doctor/doctor.service';
-import { PatientService } from '../patient/patient.service';
-import { AdminService } from '../admin/admin.service';
+
 import * as bcrypt from 'bcrypt';
+import { PatientService } from 'src/patient/patient.service';
+import { AdminsService } from 'src/admin/admin.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private doctorService: DoctorService,
-    private patientService: PatientService,
-    private adminService: AdminService,
-    private jwtService: JwtService,
+    public doctorService: DoctorService,    // ✅ Proper typing
+    public patientService: PatientService, // ✅ Proper typing  
+    public adminService: AdminsService,    // ✅ Proper typing
+    public jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string, type: string): Promise<any> {
+  async validateUser(email: string, password: string,  type: 'doctor' | 'patient' | 'admin' = 'patient'): Promise<any> {
     let user: any;
     
     switch (type) {

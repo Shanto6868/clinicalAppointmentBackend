@@ -27,39 +27,20 @@ export class AppointmentController {
     if (req.user.role !== 'patient') {
       throw new ForbiddenException('Only patients can create appointments');
     }
-    const patientId = req.user.sub; // 👈 patientId from JWT
+    const patientId = req.user.id; // 👈 patientId from JWT
     return this.appointmentService.create(createAppointmentDto, patientId);
   }
 
   // ✅ Admin only: Get all appointments
-  @Get()
-  async findAll(
-    @Req() req,
-    @Query('doctorId') doctorId?: number,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('Only admin can view all appointments');
-    }
+ @Get()
+async findAll(@Req() req) {
+  // Optional: check if user is admin
+  // if (req.user.role !== 'admin') {
+  //   throw new ForbiddenException('Only admin can view all appointments');
+  // }
 
-    if (doctorId && startDate) {
-      return this.appointmentService.getDoctorAppointmentsByDate(
-        doctorId,
-        new Date(startDate),
-      );
-    }
-    if (doctorId) {
-      return this.appointmentService.findByDoctor(doctorId);
-    }
-    if (startDate && endDate) {
-      return this.appointmentService.findByDateRange(
-        new Date(startDate),
-        new Date(endDate),
-      );
-    }
-    return this.appointmentService.findAll();
-  }
+  return this.appointmentService.findAll();
+}
 
   @Get(':id')
   async findOne(@Req() req, @Param('id') id: string) {
@@ -78,7 +59,6 @@ export class AppointmentController {
     ) {
       throw new ForbiddenException('You can only view your own appointments');
     }
-
     return appointment;
   }
 

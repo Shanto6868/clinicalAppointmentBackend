@@ -4,14 +4,14 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { DoctorService } from '../doctor/doctor.service';
 import { PatientService } from '../patient/patient.service';
-import { AdminService } from '../admin/admin.service';
+import { AdminsService } from '../admin/admin.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private doctorService: DoctorService,
     private patientService: PatientService,
-    private adminService: AdminService,
+    private adminService: AdminsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -20,10 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: number; type: string; email: string }) {
+  async validate(payload: { sub: number; role: string; email: string }) {
     let user: any;
-    
-    switch (payload.type) {
+    switch (payload.role) {
       case 'doctor':
         user = await this.doctorService.findById(payload.sub);
         break;
@@ -37,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('Invalid user type');
     }
 
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException();
     }
 
@@ -46,7 +45,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       username: user.username,
       fullName: user.fullName,
-      type: payload.type,
+      role: payload.role,
     };
   }
 }

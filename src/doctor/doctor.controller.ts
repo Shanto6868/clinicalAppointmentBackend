@@ -7,6 +7,7 @@ import { UpdateDoctorDto } from './update-doctor.dto';
 import { Appointment } from '../appointments/appointment.entity';
 //import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LoginDoctorDto } from './login-doctor.dto';
 
 @Controller('doctors')
 export class DoctorController {
@@ -21,19 +22,13 @@ export class DoctorController {
     return this.doctorService.register(createDoctorDto);
    }
 
-  // @Post('login')
-  // async login(@Body() loginDoctorDto: LoginDoctorDto): Promise<any> {
-  //   const doctor = await this.authService.validateDoctor(
-  //     loginDoctorDto.email,
-  //     loginDoctorDto.password
-  //   );
-    
-  //   if (!doctor) {
-  //     throw new UnauthorizedException('Invalid credentials');
-  //   }
 
-  //   return this.authService.login(doctor);
-  // }
+   // Login
+  @Post('login')
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  login(@Body() body: { email: string; password: string }) {
+    return this.doctorService.login(body.email, body.password);
+  }
 
   // Protect all routes below with JWT
   @UseGuards(JwtAuthGuard)

@@ -72,7 +72,7 @@ export class PatientController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     return this.patientService.changePassword(userId, dto);
   }
 

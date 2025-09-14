@@ -6,7 +6,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { Request } from 'express';
 import { RateLimiterMemory } from 'rate-limiter-flexible';
-import { AuthService } from '../auth.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {

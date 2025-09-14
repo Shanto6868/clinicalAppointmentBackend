@@ -5,14 +5,16 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { DoctorModule } from '../doctor/doctor.module';
 import { PatientModule } from '../patient/patient.module';
-import { AdminModule } from '../admin/admin.module';
 import { AuthController } from './auth.controller';
+import { AdminModule } from 'src/admin/admin.module';
+import { forwardRef } from '@nestjs/common';
+
 
 @Module({
   imports: [
     DoctorModule,
     PatientModule,
-    AdminModule,
+    forwardRef(() => AdminModule),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'dev-secret',
       signOptions: { expiresIn: '1d' },

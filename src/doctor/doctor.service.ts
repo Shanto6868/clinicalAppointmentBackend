@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Doctor } from './doctor.entity';
@@ -7,12 +13,17 @@ import { UpdateDoctorDto } from './update-doctor.dto';
 import { LoginDoctorDto } from './login-doctor.dto';
 import * as bcrypt from 'bcrypt';
 import { Appointment } from '../appointments/appointment.entity';
-
+import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class DoctorService {
+  findByEmail(email: string) {
+      throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectRepository(Doctor)
     private doctorRepository: Repository<Doctor>,
+        private jwtService: JwtService,
+    
   ) {}
 
   async register(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
@@ -31,43 +42,37 @@ export class DoctorService {
     return this.doctorRepository.save(doctor);
   }
 
-  async login(loginDoctorDto: LoginDoctorDto): Promise<any> {
-    const doctor = await this.doctorRepository.findOne({
-      where: { email: loginDoctorDto.email },
-      select: ['id', 'email', 'password', 'isActive', 'fullName']
-    });
-
-    if (!doctor) {
-      throw new NotFoundException('Doctor account not found');
-    }
-
-    if (!doctor.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
-    }
-
-    const isPasswordValid = await bcrypt.compare(
-      loginDoctorDto.password,
-      doctor.password
-    );
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid password');
-    }
-
-    const { password, ...result } = doctor;
-    return result;
-  }
-
-async findByEmailForAuth(email: string): Promise<Doctor> {
+  async findByEmailForAuth(email: string): Promise<Doctor> {
   const doctor = await this.doctorRepository.findOne({
-    where: { email },
-    select: ['id', 'email', 'password', 'isActive', 'username', 'fullName']
+    where: { email:email.toLocaleLowerCase() },
+    select: ['id', 'email', 'password']
   });
   if (!doctor) {
     throw new NotFoundException(`Doctor with email ${email} not found`);
   }
   return doctor;
 }
+
+async login(email: string, password: string) {
+  
+
+  const doctor = await this.findByEmailForAuth(email); // ensures password is selected
+
+  const match = await bcrypt.compare(password, doctor.password);
+  if (!match) {
+    throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+  }
+
+  const payload = { sub: doctor.id, role: 'doctor', email: doctor.email };
+  const token = await this.jwtService.signAsync(payload);
+
+  const { password: _, ...safeDoctor } = doctor;
+  return { access_token: token, user: safeDoctor };
+}
+
+  
+
+
 
  async findByIdForPasswordChange(id: number): Promise<Doctor> {
     const doctor = await this.doctorRepository.findOne({

@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { Appointment } from '../appointments/appointment.entity';
+import { Admin } from '../admin/entities/admin.entity';
 import * as bcrypt from 'bcrypt';
 
 @Entity()
@@ -49,6 +50,14 @@ export class Doctor {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
+
+  // Relationship with Admin
+  @ManyToOne(() => Admin, (admin) => admin.doctors)
+  @JoinColumn({ name: 'adminId' })
+  admin: Admin;
+
+  @Column({ nullable: true })
+  adminId: number;
 
   @OneToMany(() => Appointment, appointment => appointment.doctor, {
     cascade: true, 

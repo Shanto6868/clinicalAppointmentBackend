@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Patient } from '../../patient/patient.entity';
+import { Doctor } from '../../doctor/doctor.entity';
 
 @Entity('admin')
 export class Admin {
@@ -22,5 +24,15 @@ export class Admin {
 
   @Column({ type: 'enum', enum: ['male', 'female'] })
   gender: string;
+
+  @Column({ default: 0 })
   failedLoginAttempts: number;
+
+  // Relationship with Patients
+  @OneToMany(() => Patient, (patient) => patient.admin)
+  patients: Patient[];
+
+  // Relationship with Doctors
+  @OneToMany(() => Doctor, (doctor) => doctor.admin)
+  doctors: Doctor[];
 }

@@ -3,9 +3,9 @@ import { APP_PIPE } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PatientModule } from './patient/patient.module';
 import { AppointmentModule } from './appointments/appointment.module';
-import { AuthModule } from './auth/auth.module';
 import { Patient } from './patient/patient.entity';
-import { AdminModule } from './Admin/admin.module';
+import { AdminModule } from './admin/admin.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
