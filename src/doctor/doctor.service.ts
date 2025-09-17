@@ -90,6 +90,15 @@ async login(email: string, password: string) {
     await this.doctorRepository.update(id, { password: newPassword });
   }
 
+
+    // Delete
+  async deleteDoctor(id: number) {
+    const result = await this.doctorRepository.delete(id);
+    if (result.affected === 0)
+      throw new HttpException('Doctor not found', HttpStatus.NOT_FOUND);
+    return { message: 'Doctor deleted successfully' };
+  }
+
   async findAll(): Promise<Doctor[]> {
     return this.doctorRepository.find({
       relations: ['appointments'],

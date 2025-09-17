@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, UsePipes, ValidationPipe, Query, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, UsePipes, ValidationPipe, Query, UseGuards, UnauthorizedException, Delete, ParseIntPipe } from '@nestjs/common';
 import { DoctorService } from './doctor.service';
 import { Doctor } from './doctor.entity';
 import { CreateDoctorDto } from './create-doctor.dto';
@@ -31,7 +31,7 @@ export class DoctorController {
   }
 
   // Protect all routes below with JWT
-  @UseGuards(JwtAuthGuard)
+
   @Get()
   async findAll(): Promise<Doctor[]> {
     return this.doctorService.findAll();
@@ -49,6 +49,15 @@ export class DoctorController {
     return this.doctorService.deactivate(+id);
   }
 
+
+  
+    // Delete patient
+    @Delete(':id')
+    delete(@Param('id', ParseIntPipe) id: number) {
+      return this.doctorService.deleteDoctor(id);
+    }
+
+    
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async update(

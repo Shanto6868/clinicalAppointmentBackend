@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Doctor } from '../doctor/doctor.entity';
 import { Patient } from '../patient/patient.entity';
+import { Admin } from '../admin/entities/admin.entity'; // ✅ Import Admin
 
 @Entity()
 export class Appointment {
@@ -35,6 +36,17 @@ export class Appointment {
 
   @Column()
   doctorId: number;
+
+  // ✅ Relation with Admin
+  @ManyToOne(() => Admin, (admin) => admin.appointments, {
+    eager: false,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'adminId' })
+  admin: Admin;
+
+  @Column({nullable: true})
+  adminId: number;
 
   // Appointment details
   @Column({ type: 'date' })

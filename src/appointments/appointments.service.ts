@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Appointment } from './appointment.entity';
@@ -19,46 +19,59 @@ export class AppointmentService {
     private doctorService: DoctorService,
   ) {}
 
-  // ✅ Create appointment for a patient
-  async create(
-    createAppointmentDto: CreateAppointmentDto,
-    patientId: number,
-  ): Promise<Appointment> {
-    // Ensure doctor exists
-    await this.doctorService.findById(createAppointmentDto.doctorId);
+  // Create appointment for a patient (adminId optional)
+async create(
+  createAppointmentDto: CreateAppointmentDto,
+  patientId: any, // initially, it could be string
+): Promise<Appointment> {
+  const parsedPatientId = Number(patientId);
 
-    // Ensure patient exists
-    const patient = await this.patientRepository.findOne({
-      where: { id: patientId },
-    });
-    if (!patient) {
-      throw new NotFoundException(`Patient with ID ${patientId} not found`);
-    }
-
-    const appointment = this.appointmentRepository.create({
-      doctor: { id: createAppointmentDto.doctorId },
-      patient: { id: patientId },
-      date: createAppointmentDto.date,
-      time: createAppointmentDto.time,
-      status: createAppointmentDto.status ?? 'pending',
-    });
-
-    return this.appointmentRepository.save(appointment);
+  if (isNaN(parsedPatientId)) {
+    throw new BadRequestException(`Invalid patientId: ${patientId}`);
   }
 
-  // ✅ Admin: Get all appointments
-  async findAll(): Promise<Appointment[]> {
+  // Ensure doctor exists
+  await this.doctorService.findById(createAppointmentDto.doctorId);
+
+  // Ensure patient exists
+  const patient = await this.patientRepository.findOne({
+    where: { id: parsedPatientId },
+  });
+
+  if (!patient) {
+    throw new NotFoundException(`Patient with ID ${parsedPatientId} not found`);
+  }
+
+  const appointment = this.appointmentRepository.create({
+    doctorId: createAppointmentDto.doctorId,
+    patientId: parsedPatientId,
+    date: new Date(createAppointmentDto.date),
+    time: createAppointmentDto.time,
+    status: createAppointmentDto.status ?? 'pending',
+  });
+
+  return this.appointmentRepository.save(appointment);
+}
+
+  // Admin: Get all appointments (adminId optional filter)
+  async findAll(adminId?: number): Promise<Appointment[]> {
+    const where: any = {};
+    // if (adminId) {
+    //   where.admin = { id: adminId };
+    // } 
+
     return this.appointmentRepository.find({
-      relations: ['doctor', 'patient'],
+      where,
+      relations: ['doctor', 'patient', 'admin'],
       order: { date: 'ASC', time: 'ASC' },
     });
   }
 
-  // ✅ Shared: Get by ID (controller restricts access by role)
+  // Shared: Get by ID (controller restricts access by role)
   async findById(id: number): Promise<Appointment> {
     const appointment = await this.appointmentRepository.findOne({
       where: { id },
-      relations: ['doctor', 'patient'],
+      relations: ['doctor', 'patient', 'admin'],
     });
 
     if (!appointment) {
@@ -67,7 +80,6 @@ export class AppointmentService {
     return appointment;
   }
 
-  // ✅ Admin / Doctor (controller decides who can call this)
   async update(
     id: number,
     updateAppointmentDto: UpdateAppointmentDto,
@@ -77,7 +89,6 @@ export class AppointmentService {
     return this.appointmentRepository.save(appointment);
   }
 
-  // ✅ Admin only
   async remove(id: number): Promise<void> {
     const result = await this.appointmentRepository.delete(id);
     if (result.affected === 0) {
@@ -85,29 +96,31 @@ export class AppointmentService {
     }
   }
 
-  // ✅ Doctor: Get their appointments
   async findByDoctor(doctorId: number): Promise<Appointment[]> {
     await this.doctorService.findById(doctorId);
     return this.appointmentRepository.find({
       where: { doctor: { id: doctorId } },
-      relations: ['doctor', 'patient'],
+      relations: ['doctor', 'patient', 'admin'],
       order: { date: 'ASC', time: 'ASC' },
     });
   }
 
-  // ✅ Admin: Find by date range
-  async findByDateRange(
-    startDate: Date,
-    endDate: Date,
-  ): Promise<Appointment[]> {
+  async getPatientAppointments(patientId: number): Promise<Appointment[]> {
+    return this.appointmentRepository.find({
+      where: { patient: { id: patientId } },
+      relations: ['doctor', 'patient', 'admin'],
+      order: { date: 'ASC', time: 'ASC' },
+    });
+  }
+
+  async findByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
     return this.appointmentRepository.find({
       where: { date: Between(new Date(startDate), new Date(endDate)) },
-      relations: ['doctor', 'patient'],
+      relations: ['doctor', 'patient', 'admin'],
       order: { date: 'ASC', time: 'ASC' },
     });
   }
 
-  // ✅ Doctor: Get appointments by date
   async getDoctorAppointmentsByDate(
     doctorId: number,
     date: Date,
@@ -115,24 +128,7 @@ export class AppointmentService {
     await this.doctorService.findById(doctorId);
     return this.appointmentRepository.find({
       where: { doctor: { id: doctorId }, date: new Date(date) },
-      relations: ['doctor', 'patient'],
-    });
-  }
-
-  // ✅ Doctor: Get all their appointments
-  async getDoctorAppointments(doctorId: number): Promise<Appointment[]> {
-    return this.appointmentRepository.find({
-      where: { doctor: { id: doctorId } },
-      relations: ['doctor', 'patient'],
-    });
-  }
-
-  // ✅ Patient: Get their own appointments
-  async getPatientAppointments(patientId: number): Promise<Appointment[]> {
-    return this.appointmentRepository.find({
-      where: { patient: { id: patientId } },
-      relations: ['doctor', 'patient'],
-      order: { date: 'ASC', time: 'ASC' },
+      relations: ['doctor', 'patient', 'admin'],
     });
   }
 }

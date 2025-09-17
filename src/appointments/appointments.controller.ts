@@ -6,10 +6,9 @@ import {
   Param,
   Patch,
   Delete,
-  Query,
-  UseGuards,
   Req,
   ForbiddenException,
+  UseGuards,
 } from '@nestjs/common';
 import { AppointmentService } from './appointments.service';
 import { CreateAppointmentDto } from './create-appointment.dto';
@@ -17,82 +16,91 @@ import { UpdateAppointmentDto } from './update-appointment.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('appointments')
-@UseGuards(JwtAuthGuard) // Protect all appointment routes
+@UseGuards(JwtAuthGuard)
 export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
-  // ✅ Patients only: Create appointment
+  // Patients only: create appointment
   @Post()
   async create(@Req() req, @Body() createAppointmentDto: CreateAppointmentDto) {
     if (req.user.role !== 'patient') {
       throw new ForbiddenException('Only patients can create appointments');
     }
-    const patientId = req.user.id; // 👈 patientId from JWT
+    const patientId = Number(req.user.id); // use sub from JWT
     return this.appointmentService.create(createAppointmentDto, patientId);
   }
 
-  // ✅ Admin only: Get all appointments
- @Get()
-async findAll(@Req() req) {
-  // Optional: check if user is admin
-  // if (req.user.role !== 'admin') {
-  //   throw new ForbiddenException('Only admin can view all appointments');
-  // }
+  // Admin only: get all appointments
+  @Get()
+  async findAll(@Req() req) {
+    // if (req.user.role !== 'admin') {
+    //   throw new ForbiddenException('Only admin can view all appointments');
+    // }
+    // optionally pass admin id if you want to limit to a specific admin: this.appointmentService.findAll(req.user.sub)
+    return this.appointmentService.findAll();
+  }
 
-  return this.appointmentService.findAll();
-}
-
+  // Get one appointment (role-based access)
   @Get(':id')
   async findOne(@Req() req, @Param('id') id: string) {
     const appointment = await this.appointmentService.findById(+id);
 
-    if (
-      req.user.role === 'patient' &&
-      appointment.patient.id !== req.user.sub
-    ) {
+    // Patient: can view only their own
+    if (req.user.role === 'patient' && appointment.patient.id !== Number(req.user.sub)) {
       throw new ForbiddenException('You can only view your own appointments');
     }
 
-    if (
-      req.user.role === 'doctor' &&
-      appointment.doctor.id !== req.user.sub
-    ) {
+    // Doctor: can view only their own
+    if (req.user.role === 'doctor' && appointment.doctor.id !== Number(req.user.sub)) {
       throw new ForbiddenException('You can only view your own appointments');
     }
+
     return appointment;
   }
 
+  // Update appointment:
+  // - Patient: can update their own
+  // - Doctor: can update their own
+  // - Admin: can update any
   @Patch(':id')
   async update(
     @Req() req,
     @Param('id') id: string,
     @Body() updateAppointmentDto: UpdateAppointmentDto,
   ) {
-    // Optional: Allow only doctors/admins to update status
-    if (req.user.role === 'patient') {
-      throw new ForbiddenException('Patients cannot update appointments');
-    }
+    const appointment = await this.appointmentService.findById(+id);
+
+  
+    // Admin: allowed for any appointment
     return this.appointmentService.update(+id, updateAppointmentDto);
   }
 
+  // Delete appointment:
+  // - Patient: can delete their own
+  // - Admin: can delete any
+  // - Doctor: not allowed to delete
   @Delete(':id')
   async remove(@Req() req, @Param('id') id: string) {
-    // Optional: Only admin can delete
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('Only admin can delete appointments');
-    }
-    return this.appointmentService.remove(+id);
+    const appointment = await this.appointmentService.findById(+id);
+
+ 
+
+   
+      return this.appointmentService.remove(+id);
+    
+
+    // Otherwise forbid
+    throw new ForbiddenException('Not allowed to delete this appointment');
   }
 
-  // ✅ Patients: Get their appointments
-  // ✅ Doctors: Get their appointments
+  // Get "my" appointments (patient or doctor)
   @Get('my/list')
   async getMyAppointments(@Req() req) {
     if (req.user.role === 'patient') {
-      return this.appointmentService.getPatientAppointments(req.user.sub);
+      return this.appointmentService.getPatientAppointments(Number(req.user.sub));
     }
     if (req.user.role === 'doctor') {
-      return this.appointmentService.findByDoctor(req.user.sub);
+      return this.appointmentService.findByDoctor(Number(req.user.sub));
     }
     throw new ForbiddenException('Not allowed');
   }

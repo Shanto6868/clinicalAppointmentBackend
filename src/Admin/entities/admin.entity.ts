@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Patient } from '../../patient/patient.entity';
 import { Doctor } from '../../doctor/doctor.entity';
+import { Appointment } from '../../appointments/appointment.entity'; 
 
 @Entity('admin')
 export class Admin {
@@ -28,11 +29,15 @@ export class Admin {
   @Column({ default: 0 })
   failedLoginAttempts: number;
 
-  // Relationship with Patients
+  // ✅ Relationship with Patients
   @OneToMany(() => Patient, (patient) => patient.admin)
   patients: Patient[];
 
-  // Relationship with Doctors
+  // ✅ Relationship with Doctors
   @OneToMany(() => Doctor, (doctor) => doctor.admin)
   doctors: Doctor[];
+
+  // ✅ Relationship with Appointments
+  @OneToMany(() => Appointment, (appointment) => appointment.admin)
+  appointments: Appointment[];
 }

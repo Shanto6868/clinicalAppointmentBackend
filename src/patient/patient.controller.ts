@@ -72,9 +72,49 @@ export class PatientController {
   @UseGuards(JwtAuthGuard)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
-    const userId = req.user.id;
+    const userId = req.user.sub;
     return this.patientService.changePassword(userId, dto);
   }
+
+  // Get own profile (JWT Protected) - NEW: Patient can view their own information
+  @Get('profile/me')
+  @UseGuards(JwtAuthGuard)
+  async getOwnProfile(@Req() req) {
+    const userId = req.user.id;
+    return this.patientService.getPatientById(userId);
+  }
+
+  // Update own profile (JWT Protected) - NEW: Patient can update their own information
+  @Patch('profile/me')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueName = Date.now() + extname(file.originalname);
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
+  async updateOwnProfile(
+    @Req() req,
+    @UploadedFile() image: Express.Multer.File,
+    @Body() dto: Partial<CreatePatientDto>,
+  ) {
+    const userId = req.user.id;
+    return this.patientService.updatePatient(userId, dto, image?.filename);
+  }
+
+  // Delete own account (JWT Protected) - NEW: Patient can delete their own account
+  // @Delete('profile/me')
+  // @UseGuards(JwtAuthGuard)
+  // async deleteOwnAccount(@Req() req) {
+  //   const userId = req.user.id;
+  //   return this.patientService.deletePatient(userId);
+  // }
 
   // Get all patients
   @Get()

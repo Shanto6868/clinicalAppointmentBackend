@@ -11,12 +11,15 @@ import { Request } from 'express';
 import { AdminsService } from './admin.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { ChangePasswordDto } from './change-password.dto';
+import { Admin } from 'typeorm';
 
 @Controller('admin')
 export class AdminController {
   constructor(
     private readonly adminsService: AdminsService,
   ) {}
+  
+ 
 
   // Admin Authentication Routes
   @Post('login')
@@ -25,12 +28,12 @@ export class AdminController {
     return this.adminsService.login(body.email, body.password);
   }
 
-  // @Post('logout')
-  // @UseGuards(JwtAuthGuard)
-  // logout(@Req() req: Request) {
-  //   const userId = req.user?.id;
-  //   return this.adminsService.logout();
-  // }
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  logout(@Req() req: Request) {
+    // If your JWT payload uses 'sub' as the user identifier, use 'sub' instead of 'id'
+    return this.adminsService.logout();
+  }
 
     @Patch('change-password')
     @UseGuards(JwtAuthGuard)
@@ -40,10 +43,9 @@ export class AdminController {
       return this.adminsService.changePassword(userId,dto.currentPassword, dto.newPassword );
     }
 
-  // Admin Management Routes (Protected)
+  
   @Post()
   @UsePipes(AdminValidationPipe)
-  @UseGuards(JwtAuthGuard)
   create(@Body() createAdminDto: CreateAdminDto) {
     return this.adminsService.createAdmin(createAdminDto);
   }

@@ -119,7 +119,10 @@ export class PatientService {
     const patient = await this.repo.findOne({ where: { id } });
     if (!patient)
       throw new HttpException('Patient not found', HttpStatus.NOT_FOUND);
-    return patient;
+    
+    // Remove password from returned data
+    const { password, ...patientWithoutPassword } = patient;
+    return patientWithoutPassword;
   }
 
   // Update status
@@ -162,6 +165,14 @@ export class PatientService {
     if (!patient)
       throw new HttpException('Patient not found', HttpStatus.NOT_FOUND);
 
+    // Check if email is being changed and if it already exists
+    if (dto.email && dto.email !== patient.email) {
+      const existingPatient = await this.repo.findOne({ where: { email: dto.email } });
+      if (existingPatient && existingPatient.id !== id) {
+        throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
+      }
+    }
+
     if (dto.password) {
       dto.password = await bcrypt.hash(dto.password, 10);
     }
@@ -171,6 +182,10 @@ export class PatientService {
     }
 
     Object.assign(patient, dto);
-    return this.repo.save(patient);
+    const updatedPatient = await this.repo.save(patient);
+    
+    // Remove password from returned data
+    const { password, ...patientWithoutPassword } = updatedPatient;
+    return patientWithoutPassword;
   }
 }
